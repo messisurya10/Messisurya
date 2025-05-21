@@ -1,0 +1,112 @@
+import random
+import datetime
+import time
+import logging
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+import numpy as np
+
+# ------------------------------ CONFIGURATION ------------------------------
+logging.basicConfig(filename='predictive_maintenance.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Simulated sensor features: temperature, vibration, pressure
+SENSOR_THRESHOLD = {
+    'temperature': 80,  # degrees Celsius
+    'vibration': 5.0,   # mm/s
+    'pressure': 150     # psi
+}
+
+# ------------------------------ SENSOR SIMULATION ------------------------------
+def simulate_sensor_data():
+    return {
+        'temperature': random.uniform(60, 100),
+        'vibration': random.uniform(1.0, 7.0),
+        'pressure': random.uniform(100, 180)
+    }
+
+# ------------------------------ FAULT PREDICTION MODEL ------------------------------
+def generate_dataset(n=1000):
+    data = []
+    labels = []
+    for _ in range(n):
+        temp = random.uniform(60, 100)
+        vib = random.uniform(1.0, 7.0)
+        pres = random.uniform(100, 180)
+        fault = 1 if temp > 85 or vib > 6.0 or pres > 160 else 0
+        data.append([temp, vib, pres])
+        labels.append(fault)
+    return np.array(data), np.array(labels)
+
+def train_model():
+    X, y = generate_dataset()
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    report = classification_report(y_test, y_pred, output_dict=True)
+    print("Model trained with accuracy report:")
+    print(classification_report(y_test, y_pred))
+    return model, report
+
+# ------------------------------ CHATBOT SIMULATION ------------------------------
+def chatbot_interface(query):
+    responses = {
+        "status": "All machines are being monitored. No faults detected.",
+        "report": "System is functioning normally. Performance metrics logged.",
+        "help": "You can ask about 'status', 'report', or type 'exit' to quit."
+    }
+    return responses.get(query.lower(), "Sorry, I didn't understand that.")
+
+# ------------------------------ MAIN SYSTEM LOOP ------------------------------
+def main_loop(model):
+    print("Predictive Maintenance System Started...\n")
+    try:
+        while True:
+            sensor_data = simulate_sensor_data()
+            data_point = [[sensor_data['temperature'], sensor_data['vibration'], sensor_data['pressure']]]
+            prediction = model.predict(data_point)[0]
+            status = "FAULT DETECTED" if prediction == 1 else "Normal"
+
+            log_message = f"Temp: {sensor_data['temperature']:.2f}°C, Vib: {sensor_data['vibration']:.2f}mm/s, Pres: {sensor_data['pressure']:.2f}psi | Status: {status}"
+            print(log_message)
+            logging.info(log_message)
+
+            if prediction == 1:
+                print("⚠️ Alert: Potential failure predicted. Perform maintenance soon.\n")
+            time.sleep(3)
+    except KeyboardInterrupt:
+        print("\nSystem Monitoring Interrupted.")
+
+# ------------------------------ SYSTEM DOCUMENTATION ------------------------------
+def generate_documentation(metrics):
+    with open("final_report.txt", "w") as report:
+        report.write("FINAL PROJECT REPORT - Predictive Maintenance for Machinery\n\n")
+        report.write("Executive Summary:\n")
+        report.write("This project reduces unexpected failures using AI and sensors.\n\n")
+        
+        report.write("Model Performance:\n")
+        for label, data in metrics.items():
+            if isinstance(data, dict):
+                report.write(f"{label.title()} - Precision: {data['precision']:.2f}, Recall: {data['recall']:.2f}, F1: {data['f1-score']:.2f}\n")
+        
+        report.write("\nOutcome:\nSystem accurately detects faults and optimizes maintenance.\n")
+        report.write(f"Report generated on: {datetime.datetime.now()}\n")
+
+# ------------------------------ RUN EVERYTHING ------------------------------
+if __name__ == "__main__":
+    model, performance_metrics = train_model()
+    generate_documentation(performance_metrics)
+
+    # Chatbot interaction (optional)
+    print("\n=== Chatbot Interface ===")
+    while True:
+        user_input = input("Ask chatbot (status/report/help/exit): ")
+        if user_input.lower() == 'exit':
+            break
+        response = chatbot_interface(user_input)
+        print("Bot:", response)
+
+    # Start the real-time monitoring
+    main_loop(model)
